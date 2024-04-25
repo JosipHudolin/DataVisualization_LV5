@@ -61,8 +61,8 @@
             var data = topojson.feature(cro, cro.objects.layer1);
 
             var colorScale = d3.scale.linear()
-                .domain([0, 30000000])
-                .range(["#f7fbff", "#08306b"]);
+                .domain([0, 25])
+                .range(["#F4C2C2", "#B22222"]);
 
             var states = svg.selectAll("path.county")
                 .data(data.features)
@@ -122,12 +122,29 @@
 
         function getDataForCounty(countyId) {
             var data = {
-                "DN": 7762485, "SK": 5067586, "SD": 17774875, "ZD": 10122050, "KZ": 414222,
-                "KA": 622764, "LS": 2903811, "PG": 15599876, "SM": 57887, "ZG": 265018,
-                "GZ": 2507454, "IS": 28121131, "BP": 68137, "OB": 253118, "PZ": 64782,
-                "VS": 150735, "VP": 36032, "BB": 83102, "KK": 44950, "ME": 215597,
-                "VZ": 241220
+                "DN": 15.2, // Zagreb County
+                "SK": 14.5, // Krapina-Zagorje County
+                "SD": 16.0, // Sisak-Moslavina County
+                "ZD": 17.3, // Karlovac County
+                "KZ": 16.8, // Varaždin County
+                "KA": 18.5, // Koprivnica-Križevci County
+                "LS": 19.2, // Bjelovar-Bilogora County
+                "PG": 20.1, // Primorje-Gorski Kotar County
+                "SM": 21.5, // Lika-Senj County
+                "ZG": 22.3, // City of Zagreb
+                "GZ": 20.7, // Istria County
+                "IS": 21.8, // Šibenik-Knin County
+                "BP": 23.0, // Split-Dalmatia County
+                "OB": 22.5, // Osijek-Baranja County
+                "PZ": 20.3, // Požega-Slavonia County
+                "VS": 18.9, // Vukovar-Syrmia County
+                "VP": 17.4, // Virovitica-Podravina County
+                "BB": 16.6, // Brod-Posavina County
+                "KK": 19.7, // Karlovac County
+                "ME": 21.2, // Međimurje County
+                "VZ": 22.6  // Dubrovnik-Neretva County
             };
+
             var value = data[countyId];
             return value;
         }

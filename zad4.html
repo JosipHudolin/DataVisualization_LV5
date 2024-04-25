@@ -57,18 +57,22 @@
             .style("padding", "5px")
             .style("display", "none");
 
+        var zoom = d3.behavior.zoom()
+            .scaleExtent([1, 10])
+            .on("zoom", zoomed);
+
+        svg.call(zoom);
+
+        function zoomed() {
+            svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+        }
+
         d3.json("cro_regv3.json", function (error, cro) {
             var data = topojson.feature(cro, cro.objects.layer1);
 
             var colorScale = d3.scale.linear()
-                .domain([0, 30000000])
-                .range(["#f7fbff", "#08306b"]);
-
-            var zoom = d3.behavior.zoom()
-                .scaleExtent([1, 10])
-                .on("zoom", zoomed);
-
-            svg.call(zoom);
+                .domain([0, 25])
+                .range(["#F4C2C2", "#B22222"]);
 
             var states = svg.selectAll("path.county")
                 .data(data.features)
@@ -78,7 +82,7 @@
                 .attr("id", function (d) { return d.id; })
                 .attr("d", path)
                 .style("fill", function (d) {
-                    var dataValue = getOvernightsForCounty(d.id);
+                    var dataValue = getTempForCounty(d.id);
                     if (dataValue !== undefined) {
                         return colorScale(dataValue);
                     } else {
@@ -113,25 +117,13 @@
                     var countyId = d.id;
                     var population = getPopulationForCounty(countyId);
                     var area = getAreaForCounty(countyId);
-                    var overnights = getOvernightsForCounty(countyId);
-                    showCountyData(d.properties.name, overnights, population, area);
+                    var temp = getTempForCounty(countyId);
+                    showCountyData(d.properties.name, temp, population, area);
 
                     setTimeout(function () {
                         resetZoomAndHideData();
                     }, 10000);
                 });
-
-            function zoomed() {
-                svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
-            }
-
-            function resetZoomAndHideData() {
-                svg.transition()
-                    .duration(750)
-                    .call(zoom.translate([0, 0]).scale(1).event);
-
-                d3.select("#county-data").style("display", "none");
-            }
 
             var legend = svg.append("g")
                 .attr("class", "legend")
@@ -156,13 +148,13 @@
                 .text(function (d) { return d; });
         });
 
-        function getOvernightsForCounty(countyId) {
+        function getTempForCounty(countyId) {
             var data = {
-                "DN": 7762485, "SK": 5067586, "SD": 17774875, "ZD": 10122050, "KZ": 414222,
-                "KA": 622764, "LS": 2903811, "PG": 15599876, "SM": 57887, "ZG": 265018,
-                "GZ": 2507454, "IS": 28121131, "BP": 68137, "OB": 253118, "PZ": 64782,
-                "VS": 150735, "VP": 36032, "BB": 83102, "KK": 44950, "ME": 215597,
-                "VZ": 241220
+                "DN": 15.2, "SK": 14.5, "SD": 16.0, "ZD": 17.3, "KZ": 16.8,
+                "KA": 18.5, "LS": 19.2, "PG": 20.1, "SM": 21.5, "ZG": 22.3,
+                "GZ": 20.7, "IS": 21.8, "BP": 23.0, "OB": 22.5, "PZ": 20.3,
+                "VS": 18.9, "VP": 17.4, "BB": 16.6, "KK": 19.7, "ME": 21.2,
+                "VZ": 22.6
             };
             var value = data[countyId];
             return value;
@@ -192,9 +184,7 @@
             return value;
         }
 
-
-
-        function showCountyData(countyName, overnights, population, area) {
+        function showCountyData(countyName, temp, population, area) {
             var countyDataDiv = d3.select("#county-data");
 
             if (countyDataDiv.empty()) {
@@ -208,13 +198,21 @@
                     .style("display", "none");
             }
 
-            countyDataDiv.html("<b>County:</b> " + countyName + "<br><b>Overnights:</b> " + overnights + "<br><b>Population:</b> " + population + "<br><b>Area:</b> " + area + "km<sup>2</sup>");
+            countyDataDiv.html("<b>County:</b> " + countyName + "<br><b>Temperature:</b> " + temp + "&#8451;<br><b>Population:</b> " + population + "<br><b>Area:</b> " + area + "km<sup>2</sup>");
 
             var mouseX = d3.event.pageX;
             var mouseY = d3.event.pageY;
             countyDataDiv.style("left", mouseX + "px")
                 .style("top", mouseY + "px")
                 .style("display", "block");
+        }
+
+        function resetZoomAndHideData() {
+            svg.transition()
+                .duration(750)
+                .call(zoom.translate([0, 0]).scale(1).event);
+
+            d3.select("#county-data").style("display", "none");
         }
 
     </script>
