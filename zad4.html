@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="http://d3js.org/topojson.v1.min.js"></script>
+    <title>Zad4</title>
+    <style>
+        #tooltip {
+            position: absolute;
+            background-color: white;
+            border: 1px solid black;
+            padding: 5px;
+            display: none;
+        }
+
+        .legend {
+            position: absolute;
+            left: 20px;
+            bottom: 20px;
+        }
+
+        .legend text {
+            fill: white;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <script>
+        var width = 960,
+            height = 700;
+
+        var projection = d3.geo.mercator()
+            .center([0, 10])
+            .scale(6000)
+            .translate([17600, 4500])
+            .rotate([-180, 0]);
+
+        var path = d3.geo.path()
+            .projection(projection);
+
+        var svg = d3.select("body").append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .style("background", "black")
+            .append("g");
+
+        var tooltip = d3.select("body").append("div")
+            .attr("id", "tooltip")
+            .style("position", "absolute")
+            .style("background-color", "white")
+            .style("border", "1px solid black")
+            .style("padding", "5px")
+            .style("display", "none");
+
+        d3.json("cro_regv3.json", function (error, cro) {
+            var data = topojson.feature(cro, cro.objects.layer1);
+
+            var colorScale = d3.scale.linear()
+                .domain([0, 30000000])
+                .range(["#f7fbff", "#08306b"]);
+
+            var zoom = d3.behavior.zoom()
+                .scaleExtent([1, 10])
+                .on("zoom", zoomed);
+
+            svg.call(zoom);
+
+            var states = svg.selectAll("path.county")
+                .data(data.features)
+                .enter()
+                .append("path")
+                .attr("class", "county")
+                .attr("id", function (d) { return d.id; })
+                .attr("d", path)
+                .style("fill", function (d) {
+                    var dataValue = getOvernightsForCounty(d.id);
+                    if (dataValue !== undefined) {
+                        return colorScale(dataValue);
+                    } else {
+                        return "#ccc";
+                    }
+                })
+                .style("stroke", "gray")
+                .style("stroke-width", 1)
+                .style("opacity", 1)
+                .on("mouseover", function (d) {
+                    tooltip.style("display", "block")
+                        .html(d.properties.name)
+                        .style("left", (d3.event.pageX + 10) + "px")
+                        .style("top", (d3.event.pageY - 30) + "px");
+                })
+                .on("mouseout", function () {
+                    tooltip.style("display", "none");
+                })
+                .on("click", function (d) {
+                    var bounds = path.bounds(d);
+                    var dx = bounds[1][0] - bounds[0][0];
+                    var dy = bounds[1][1] - bounds[0][1];
+                    var x = (bounds[0][0] + bounds[1][0]) / 2;
+                    var y = (bounds[0][1] + bounds[1][1]) / 2;
+                    var scale = Math.max(1, Math.min(8, 0.9 / Math.max(dx / width, dy / height)));
+                    var translate = [width / 2 - scale * x, height / 2 - scale * y];
+
+                    svg.transition()
+                        .duration(750)
+                        .call(zoom.translate(translate).scale(scale).event);
+
+                    var countyId = d.id;
+                    var population = getPopulationForCounty(countyId);
+                    var area = getAreaForCounty(countyId);
+                    var overnights = getOvernightsForCounty(countyId);
+                    showCountyData(d.properties.name, overnights, population, area);
+
+                    setTimeout(function () {
+                        resetZoomAndHideData();
+                    }, 10000);
+                });
+
+            function zoomed() {
+                svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+            }
+
+            function resetZoomAndHideData() {
+                svg.transition()
+                    .duration(750)
+                    .call(zoom.translate([0, 0]).scale(1).event);
+
+                d3.select("#county-data").style("display", "none");
+            }
+
+            var legend = svg.append("g")
+                .attr("class", "legend")
+                .selectAll("rect")
+                .data(colorScale.range())
+                .enter().append("rect")
+                .attr("x", 20)
+                .attr("y", function (d, i) { return height - 60 - i * 20; })
+                .attr("width", 20)
+                .attr("height", 20)
+                .style("fill", function (d) { return d; });
+
+            var legendText = svg.append("g")
+                .attr("class", "legend")
+                .selectAll("text")
+                .data(colorScale.domain())
+                .enter().append("text")
+                .attr("x", 50)
+                .attr("y", function (d, i) { return height - 47 - i * 20; })
+                .attr("dy", ".35em")
+                .style("text-anchor", "start")
+                .text(function (d) { return d; });
+        });
+
+        function getOvernightsForCounty(countyId) {
+            var data = {
+                "DN": 7762485, "SK": 5067586, "SD": 17774875, "ZD": 10122050, "KZ": 414222,
+                "KA": 622764, "LS": 2903811, "PG": 15599876, "SM": 57887, "ZG": 265018,
+                "GZ": 2507454, "IS": 28121131, "BP": 68137, "OB": 253118, "PZ": 64782,
+                "VS": 150735, "VP": 36032, "BB": 83102, "KK": 44950, "ME": 215597,
+                "VZ": 241220
+            };
+            var value = data[countyId];
+            return value;
+        }
+
+        function getPopulationForCounty(countyId) {
+            var data = {
+                "DN": 122870, "SK": 109375, "SD": 455242, "ZD": 170017, "KZ": 133064,
+                "KA": 128899, "LS": 50762, "PG": 296195, "SM": 172439, "ZG": 317606,
+                "GZ": 792875, "IS": 217304, "BP": 158575, "OB": 305032, "PZ": 78034,
+                "VS": 179521, "VP": 111086, "BB": 119743, "KK": 115584, "ME": 113804,
+                "VZ": 175951
+            };
+            var value = data[countyId];
+            return value;
+        }
+
+        function getAreaForCounty(countyId) {
+            var data = {
+                "DN": 1781, "SK": 2988, "SD": 4540, "ZD": 3642, "KZ": 1228,
+                "KA": 3626, "LS": 5353, "PG": 3583, "SM": 4460, "ZG": 3060,
+                "GZ": 641, "IS": 2817, "BP": 2038, "OB": 4148, "PZ": 1825,
+                "VS": 2356, "VP": 2026, "BB": 2628, "KK": 1744, "ME": 729,
+                "VZ": 1262
+            };
+            var value = data[countyId];
+            return value;
+        }
+
+
+
+        function showCountyData(countyName, overnights, population, area) {
+            var countyDataDiv = d3.select("#county-data");
+
+            if (countyDataDiv.empty()) {
+                countyDataDiv = d3.select("body")
+                    .append("div")
+                    .attr("id", "county-data")
+                    .style("position", "absolute")
+                    .style("background-color", "white")
+                    .style("border", "1px solid black")
+                    .style("padding", "5px")
+                    .style("display", "none");
+            }
+
+            countyDataDiv.html("<b>County:</b> " + countyName + "<br><b>Overnights:</b> " + overnights + "<br><b>Population:</b> " + population + "<br><b>Area:</b> " + area + "km<sup>2</sup>");
+
+            var mouseX = d3.event.pageX;
+            var mouseY = d3.event.pageY;
+            countyDataDiv.style("left", mouseX + "px")
+                .style("top", mouseY + "px")
+                .style("display", "block");
+        }
+
+    </script>
+</body>
+
+</html>
